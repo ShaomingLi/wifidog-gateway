@@ -23,6 +23,7 @@
 #define _SIMPLE_HTTP_H_
 
 char *http_get(const int, const char *);
+char *http_request(const int, const char *);
 
 #ifdef USE_CYASSL
 char *https_get(const int, const char *, const char *);

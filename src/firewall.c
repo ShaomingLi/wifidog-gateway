@@ -257,6 +257,7 @@ fw_sync_with_authserver(void)
 {
     t_authresponse authresponse;
     t_client *p1, *p2, *worklist, *tmp;
+    char *authResponseStr, *tmpPointer, *savePointer, *retIp, *retCodeStr;
     s_config *config = config_get_config();
 
     if (-1 == iptables_fw_counters_update()) {
@@ -274,6 +275,9 @@ fw_sync_with_authserver(void)
     client_list_dup(&worklist);
     UNLOCK_CLIENT_LIST();
 
+    authResponseStr = auth_server_combine_request(worklist);
+    tmpPointer = authResponseStr;
+
     for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
         p2 = p1->next;
 
@@ -283,11 +287,11 @@ fw_sync_with_authserver(void)
          * short:  Shorter than config->checkinterval * config->clienttimeout */
         icmp_ping(p1->ip);
         /* Update the counters on the remote server only if we have an auth server */
-        if (config->auth_servers != NULL) {
+/*        if (config->auth_servers != NULL) {
             auth_server_request(&authresponse, REQUEST_TYPE_COUNTERS, p1->ip, p1->mac, p1->token, p1->counters.incoming,
                                 p1->counters.outgoing, p1->counters.incoming_delta, p1->counters.outgoing_delta);
         }
-
+*/
         time_t current_time = time(NULL);
         debug(LOG_INFO,
               "Checking client %s for timeout:  Last updated %ld (%ld seconds ago), timeout delay %ld seconds, current time %ld, ",
@@ -323,7 +327,30 @@ fw_sync_with_authserver(void)
                 continue;       /* Next client please */
             }
 
-            if (config->auth_servers != NULL) {
+            if ((config->auth_servers != NULL) && (authResponseStr != NULL)) {
+                retIp = strtok_r(tmpPointer, " ", &savePointer);
+                tmpPointer = NULL;
+                retCodeStr = strtok_r(tmpPointer, " ", &savePointer);
+                if((retIp == NULL) || (retCodeStr == NULL))
+                {
+                   authresponse.authcode = AUTH_ERROR;
+                }
+                else if(strcmp(retIp, p1->ip) != 0)
+                {
+                   authresponse.authcode = AUTH_ERROR;
+                }
+                else
+                {
+                   authresponse.authcode = atoi(retCodeStr);
+                   /* 
+                      as 0 may be returned by error, we have to deal with it manully
+                    */
+                   if((authresponse.authcode==0) && (*retCodeStr!='0'))
+                   {
+                       authresponse.authcode = AUTH_ERROR;
+                   }
+                }
+
                 switch (authresponse.authcode) {
                 case AUTH_DENIED:
                     debug(LOG_NOTICE, "%s - Denied. Removing client and firewall rules", tmp->ip);
@@ -381,6 +408,9 @@ fw_sync_with_authserver(void)
             UNLOCK_CLIENT_LIST();
         }
     }
-
+    if(authResponseStr != NULL)
+    {
+        free(authResponseStr);
+    }
     client_list_destroy(worklist);
 }

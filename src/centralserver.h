@@ -53,6 +53,8 @@ t_authcode auth_server_request(t_authresponse * authresponse,
                                const char *mac,
                                const char *token, unsigned long long int incoming, unsigned long long int outgoing, unsigned long long int incoming_delta, unsigned long long int outgoing_delta);
 
+char* auth_server_combine_request(t_client *worklist);
+
 /** @brief Tries really hard to connect to an auth server.  Returns a connected file descriptor or -1 on error */
 int connect_auth_server(void);
 

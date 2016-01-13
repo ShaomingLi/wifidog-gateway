@@ -85,6 +85,7 @@ typedef enum {
     oAuthServMsgScriptPathFragment,
     oAuthServPingScriptPathFragment,
     oAuthServAuthScriptPathFragment,
+    oAuthServCombineAuthScriptPathFragment,
     oHTTPDMaxConn,
     oHTTPDName,
     oHTTPDRealm,
@@ -141,6 +142,7 @@ static const struct {
     "msgscriptpathfragment", oAuthServMsgScriptPathFragment}, {
     "pingscriptpathfragment", oAuthServPingScriptPathFragment}, {
     "authscriptpathfragment", oAuthServAuthScriptPathFragment}, {
+    "combineauthscriptpathfragment", oAuthServCombineAuthScriptPathFragment}, {
     "firewallruleset", oFirewallRuleSet}, {
     "firewallrule", oFirewallRule}, {
     "trustedmaclist", oTrustedMACList}, {
@@ -256,7 +258,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
         *loginscriptpathfragment = NULL,
         *portalscriptpathfragment = NULL,
         *msgscriptpathfragment = NULL,
-        *pingscriptpathfragment = NULL, *authscriptpathfragment = NULL, line[MAX_BUF], *p1, *p2;
+        *pingscriptpathfragment = NULL, *authscriptpathfragment = NULL, *combineauthscriptpathfragment = NULL, line[MAX_BUF], *p1, *p2;
     int http_port, ssl_port, ssl_available, opcode;
     t_auth_serv *new, *tmp;
 
@@ -267,6 +269,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
     msgscriptpathfragment = safe_strdup(DEFAULT_AUTHSERVMSGPATHFRAGMENT);
     pingscriptpathfragment = safe_strdup(DEFAULT_AUTHSERVPINGPATHFRAGMENT);
     authscriptpathfragment = safe_strdup(DEFAULT_AUTHSERVAUTHPATHFRAGMENT);
+    combineauthscriptpathfragment = safe_strdup(DEFAULT_COMBINEAUTHSERVAUTHPATHFRAGMENT);
     http_port = DEFAULT_AUTHSERVPORT;
     ssl_port = DEFAULT_AUTHSERVSSLPORT;
     ssl_available = DEFAULT_AUTHSERVSSLAVAILABLE;
@@ -341,6 +344,10 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
                 free(authscriptpathfragment);
                 authscriptpathfragment = safe_strdup(p2);
                 break;
+            case oAuthServCombineAuthScriptPathFragment:
+                free(combineauthscriptpathfragment);
+                combineauthscriptpathfragment = safe_strdup(p2);
+                break;
             case oAuthServSSLPort:
                 ssl_port = atoi(p2);
                 break;
@@ -368,6 +375,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
     /* only proceed if we have an host and a path */
     if (host == NULL) {
         free(path);
+        free(combineauthscriptpathfragment);
         free(authscriptpathfragment);
         free(pingscriptpathfragment);
         free(msgscriptpathfragment);
@@ -390,6 +398,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
     new->authserv_msg_script_path_fragment = msgscriptpathfragment;
     new->authserv_ping_script_path_fragment = pingscriptpathfragment;
     new->authserv_auth_script_path_fragment = authscriptpathfragment;
+    new->authserv_combine_auth_script_path_fragment = combineauthscriptpathfragment;
     new->authserv_http_port = http_port;
     new->authserv_ssl_port = ssl_port;
 
