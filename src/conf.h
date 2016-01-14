@@ -62,6 +62,7 @@
 #define DEFAULT_AUTHSERVMSGPATHFRAGMENT "gw_message.php?"
 #define DEFAULT_AUTHSERVPINGPATHFRAGMENT "ping/?"
 #define DEFAULT_AUTHSERVAUTHPATHFRAGMENT "auth/?"
+#define DEFAULT_COMBINEAUTHSERVAUTHPATHFRAGMENT "combineauth/?"
 #define DEFAULT_AUTHSERVSSLCERTPATH "/etc/ssl/certs/"
 /** Note that DEFAULT_AUTHSERVSSLNOPEERVER must be 0 or 1, even if the config file syntax is yes or no */
 #define DEFAULT_AUTHSERVSSLPEERVER 1    /* 0 means: Enable peer verification */
@@ -96,6 +97,7 @@ typedef struct _auth_serv_t {
     char *authserv_msg_script_path_fragment;    /**< @brief This is the script the user will be sent to upon error to read a readable message. */
     char *authserv_ping_script_path_fragment;   /**< @brief This is the ping heartbeating script. */
     char *authserv_auth_script_path_fragment;   /**< @brief This is the script that talks the wifidog gateway protocol. */
+    char *authserv_combine_auth_script_path_fragment;   /**< @brief This is the script that talks the wifidog gateway protocol. */
     int authserv_http_port;     /**< @brief Http port the central server
 				     listens on */
     int authserv_ssl_port;      /**< @brief Https port the central server
