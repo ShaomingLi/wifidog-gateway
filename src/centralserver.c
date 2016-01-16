@@ -204,7 +204,7 @@ char * auth_server_combine_request(t_client *worklist)
 
     sockfd = connect_auth_server();
 
-    res = http_get(sockfd, fullRequest);
+    res = http_request(sockfd, fullRequest);
     free(fullRequest);
 
     if ((tmp = strstr(res, "Auth: "))) {

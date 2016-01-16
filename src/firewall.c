@@ -257,7 +257,7 @@ fw_sync_with_authserver(void)
 {
     t_authresponse authresponse;
     t_client *p1, *p2, *worklist, *tmp;
-    char *authResponseStr, *tmpPointer, *savePointer, *retIp, *retCodeStr;
+    char *authResponseStr, *tmpPointer, *savePointer, *retMac, *retCodeStr;
     s_config *config = config_get_config();
 
     if (-1 == iptables_fw_counters_update()) {
@@ -280,6 +280,31 @@ fw_sync_with_authserver(void)
 
     for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
         p2 = p1->next;
+        if(authResponseStr != NULL)
+        {
+                retMac = strtok_r(tmpPointer, " ", &savePointer);
+                tmpPointer = NULL;
+                retCodeStr = strtok_r(tmpPointer, " ", &savePointer);
+                if((retMac == NULL) || (retCodeStr == NULL))
+                {
+                   authresponse.authcode = AUTH_ERROR;
+                }
+                else if(strcmp(retMac, p1->mac) != 0)
+                {
+                   authresponse.authcode = AUTH_ERROR;
+                }
+                else
+                {
+                   authresponse.authcode = atoi(retCodeStr);
+                   /* 
+                      as 0 may be returned by error, we have to deal with it manully
+                    */
+                   if((authresponse.authcode==0) && (*retCodeStr!='0'))
+                   {
+                       authresponse.authcode = AUTH_ERROR;
+                   }
+                }
+         }
 
         /* Ping the client, if he responds it'll keep activity on the link.
          * However, if the firewall blocks it, it will not help.  The suggested
@@ -328,30 +353,7 @@ fw_sync_with_authserver(void)
             }
 
             if ((config->auth_servers != NULL) && (authResponseStr != NULL)) {
-                retIp = strtok_r(tmpPointer, " ", &savePointer);
-                tmpPointer = NULL;
-                retCodeStr = strtok_r(tmpPointer, " ", &savePointer);
-                if((retIp == NULL) || (retCodeStr == NULL))
-                {
-                   authresponse.authcode = AUTH_ERROR;
-                }
-                else if(strcmp(retIp, p1->ip) != 0)
-                {
-                   authresponse.authcode = AUTH_ERROR;
-                }
-                else
-                {
-                   authresponse.authcode = atoi(retCodeStr);
-                   /* 
-                      as 0 may be returned by error, we have to deal with it manully
-                    */
-                   if((authresponse.authcode==0) && (*retCodeStr!='0'))
-                   {
-                       authresponse.authcode = AUTH_ERROR;
-                   }
-                }
-
-                switch (authresponse.authcode) {
+                 switch (authresponse.authcode) {
                 case AUTH_DENIED:
                     debug(LOG_NOTICE, "%s - Denied. Removing client and firewall rules", tmp->ip);
                     fw_deny(tmp);
