@@ -49,6 +49,7 @@
 #include "debug.h"
 #include "centralserver.h"
 #include "firewall.h"
+#include "pstring.h"
 #include "../config.h"
 
 #include "simple_http.h"
@@ -144,6 +145,82 @@ auth_server_request(t_authresponse * authresponse, const char *request_type, con
     }
     free(res);
     return (AUTH_ERROR);
+}
+
+char * auth_server_combine_request(t_client *worklist)
+{   
+    int sockfd;
+    size_t contentLen;
+    t_client *p1,*p2;
+    char buf[MAX_BUF],*requestContent,*fullRequest,*res,*tmp,*retStr,*safe_token;
+    pstr_t *request;
+    t_auth_serv *auth_server = NULL;
+
+    if(worklist == NULL)
+    {
+       return NULL;   
+    }
+    request = pstr_new();
+    for (p1 = p2 = worklist; NULL != p1; p1 = p2)
+    {
+        p2 = p1->next;
+        memset(buf, 0, sizeof(buf));
+        safe_token = httpdUrlEncode(p1->token);
+        snprintf(buf, (sizeof(buf) - 1),
+             "stage=%s&ip=%s&mac=%s&token=%s&incoming=%llu&outgoing=%llu&incomingdelta=%llu&outgoingdelta=%llu\r\n",
+             REQUEST_TYPE_COUNTERS,
+             p1->ip, p1->mac, safe_token, 
+             p1->counters.incoming, 
+             p1->counters.outgoing, 
+             p1->counters.incoming_delta, 
+             p1->counters.outgoing_delta);
+        free(safe_token);
+        pstr_cat(request, buf);
+    }
+    requestContent = pstr_to_string(request);
+    contentLen = strlen(requestContent);
+
+    auth_server = get_auth_server();
+    fullRequest = (char *)safe_malloc(contentLen+MAX_BUF);
+    snprintf(fullRequest, (contentLen+MAX_BUF - 1),
+             "POST %s%s HTTP/1.0\r\n"
+             "Host: %s\r\n"
+             "User-Agent: WiFiDog %s\r\n"
+             "Content-Length: %lu\r\n"
+             "Content-Type: text/plain\r\n"
+             "\r\n"
+             "%s",
+             auth_server->authserv_path,
+             auth_server->authserv_combine_auth_script_path_fragment,
+             auth_server->authserv_hostname,
+             VERSION,
+             contentLen,
+             requestContent);
+
+    debug(LOG_INFO,"send request %s",fullRequest);
+
+    free(requestContent);
+
+
+    sockfd = connect_auth_server();
+
+    res = http_request(sockfd, fullRequest);
+    free(fullRequest);
+
+    if ((tmp = strstr(res, "Auth: "))) {
+         /* skip auth: */
+         tmp += 6;
+         retStr = safe_strdup(tmp);
+         free(res);
+         return retStr;
+    }
+
+    if(res != NULL)
+    {
+        debug(LOG_ERR,"error in response %s",res);
+        free(res);
+    }
+    return NULL;
 }
 
 /* Tries really hard to connect to an auth server. Returns a file descriptor, -1 on error

@@ -295,7 +295,7 @@ init_icmp_socket(void)
     int flags, oneopt = 1, zeroopt = 0;
 
     debug(LOG_INFO, "Creating ICMP socket");
-    if ((icmp_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1 ||
+    if ((icmp_fd = socket(AF_INET, SOCK_RAW|SOCK_CLOEXEC, IPPROTO_ICMP)) == -1 ||
         (flags = fcntl(icmp_fd, F_GETFL, 0)) == -1 ||
         fcntl(icmp_fd, F_SETFL, flags | O_NONBLOCK) == -1 ||
         setsockopt(icmp_fd, SOL_SOCKET, SO_RCVBUF, &oneopt, sizeof(oneopt)) ||

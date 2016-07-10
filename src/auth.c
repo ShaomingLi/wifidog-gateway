@@ -222,8 +222,18 @@ authenticate_client(request * r)
               "adding to firewall and redirecting them to portal", client->token, client->ip, client->mac);
         fw_allow(client, FW_MARK_KNOWN);
         served_this_session++;
-        safe_asprintf(&urlFragment, "%sgw_id=%s", auth_server->authserv_portal_script_path_fragment, config->gw_id);
-        http_send_redirect_to_auth(r, urlFragment, "Redirect to portal");
+        /* to the destination directly if possible */
+        if (((var = httpdGetVariableByName(r, "url")) != NULL)
+                   &&(strlen(var->value)>0))
+        {
+            urlFragment = safe_strdup(var->value);
+            http_send_redirect(r, urlFragment, "Redirect to destination");
+        }
+        else
+        {
+            safe_asprintf(&urlFragment, "%sgw_id=%s", auth_server->authserv_portal_script_path_fragment, config->gw_id);
+            http_send_redirect_to_auth(r, urlFragment, "Redirect to portal");
+        }
         free(urlFragment);
         break;
 
